@@ -1,6 +1,6 @@
 require 'set'
 
-def calculate_distance(input)
+def calculate_minimum_amount_of_steps(input)
   wires = input.split("\n")
                .map { |line| Path.from_s(line) }
                .map { |path| Wire.new(path) }
@@ -12,7 +12,7 @@ def calculate_distance(input)
   zero = Coordinate.zero
 
   intersections.filter { |intersection| intersection != zero }
-               .map    { |intersection| intersection.distance(zero) }
+               .map    { |intersection| first_wire.steps(intersection) + second_wire.steps(intersection) }
                .min
 end
 
@@ -29,10 +29,14 @@ class Wire
 
     our_coordinates & other_coordinates
   end
+
+  def steps(coordinate)
+    @path.steps(coordinate)
+  end
 end
 
 class Path
-  attr_reader :parts, :coordinates
+  attr_reader :parts
 
   def initialize(parts)
     @parts = parts
@@ -42,31 +46,36 @@ class Path
   def calculate_coordinates
     x = 0
     y = 0
+    steps = 0
 
-    coordinates = Set[]
+    coordinates = Hash.new
 
     parts.each do |part|
       amount = part.amount
       case part.direction
       when :up
         (1..amount).each do |_|
-          coordinates << Coordinate.new(x, y)
+          steps += 1
           y += 1
+          coordinates[Coordinate.new(x, y)] = steps
         end
       when :right
         (1..amount).each do |_|
-          coordinates << Coordinate.new(x, y)
+          steps += 1
           x += 1
+          coordinates[Coordinate.new(x, y)] = steps
         end
       when :down
         (1..amount).each do |_|
-          coordinates << Coordinate.new(x, y)
+          steps += 1
           y -= 1
+          coordinates[Coordinate.new(x, y)] = steps
         end
       when :left
         (1..amount).each do |_|
-          coordinates << Coordinate.new(x, y)
+          steps += 1
           x -= 1
+          coordinates[Coordinate.new(x, y)] = steps
         end
       else
         raise 'Unknown direction'
@@ -79,6 +88,16 @@ class Path
   def self.from_s(input_path)
     parts = input_path.split(',').map { |part| PathPart.from_s(part) }
     Path.new(parts)
+  end
+
+  def coordinates
+    set = Set[]
+    @coordinates.keys.each { |coordinate| set << coordinate }
+    set
+  end
+
+  def steps(coordinate)
+    @coordinates[coordinate]
   end
 end
 
@@ -153,7 +172,7 @@ end
 if $PROGRAM_NAME == __FILE__
   file = File.join(File.dirname(__FILE__), 'day_3.txt')
   input = File.read(file)
-  result = calculate_distance(input)
+  result = calculate_minimum_amount_of_steps(input)
 
   puts result
 end
